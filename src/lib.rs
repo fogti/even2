@@ -41,12 +41,7 @@ impl EventDispatcher {
         (*self
             .0
             .entry(TypeId::of::<E>())
-            .or_insert_with(|| {
-                (
-                    dyn_delegate::<E>,
-                    Box::new(Vec::<OneOneED<E>>::new()),
-                )
-            })
+            .or_insert_with(|| (dyn_delegate::<E>, Box::new(Vec::<OneOneED<E>>::new())))
             .1)
             .downcast_mut::<OneEventDispatcher<E>>()
             .unwrap()
@@ -65,11 +60,7 @@ impl EventDispatcher {
 
     pub fn trigger<E: Event>(&mut self, event: &E) {
         if let Some(listeners) = self.0.get_mut(&TypeId::of::<E>()) {
-            for callback in listeners
-                .1
-                .downcast_mut::<OneEventDispatcher<E>>()
-                .unwrap()
-            {
+            for callback in listeners.1.downcast_mut::<OneEventDispatcher<E>>().unwrap() {
                 callback(event);
             }
         }
@@ -86,6 +77,7 @@ impl EventDispatcher {
 #[cfg(test)]
 mod test {
     use super::*;
+    use std::{cell::RefCell, rc::Rc};
 
     struct OnClick {
         mouse_x: i32,
@@ -97,7 +89,10 @@ mod test {
     #[test]
     fn basic() {
         let mut node = EventDispatcher::new();
-        node.add_event_listener(|event: &OnClick| {
+        let x = Rc::new(RefCell::new(0));
+        let x2 = Rc::clone(&x);
+        node.add_event_listener(move |event: &OnClick| {
+            *x2.borrow_mut() += 1;
             assert_eq!(event.mouse_x, 10);
             assert_eq!(event.mouse_y, 5);
         });
@@ -107,5 +102,6 @@ mod test {
         };
         node.trigger(&e);
         node.trigger_dyn(&e);
+        assert_eq!(*x.borrow(), 2);
     }
 }
