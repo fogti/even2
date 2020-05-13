@@ -1,5 +1,7 @@
 //! original source: https://github.com/willcrichton/types-over-strings/blob/master/src/event.rs
 
+#![forbid(unsafe_code)]
+
 use as_any::{AsAny, Downcast};
 use std::any::{Any, TypeId};
 use std::collections::HashMap;
@@ -7,7 +9,8 @@ use std::collections::HashMap;
 pub trait Event: AsAny {}
 impl Downcast for dyn Event {}
 
-struct OneEventDispatcher<E: Event>(Vec<Box<dyn FnMut(&E) + 'static>>);
+type OneOneED<E> = Box<dyn FnMut(&E) + 'static>;
+type OneEventDispatcher<E> = Vec<OneOneED<E>>;
 
 pub struct EventDispatcher(HashMap<TypeId, (fn(&mut dyn Any, &dyn Event), Box<dyn Any>)>);
 
@@ -19,7 +22,7 @@ fn dyn_delegate<E: Event>(listeners: &mut dyn Any, event: &dyn Event) {
         .downcast_ref()
         .expect("dyn_delegate: mismatching event type");
 
-    for callback in listeners.0.iter_mut() {
+    for callback in listeners {
         callback(event);
     }
 }
@@ -41,13 +44,12 @@ impl EventDispatcher {
             .or_insert_with(|| {
                 (
                     dyn_delegate::<E>,
-                    Box::new(OneEventDispatcher::<E>(Vec::new())),
+                    Box::new(Vec::<OneOneED<E>>::new()),
                 )
             })
             .1)
             .downcast_mut::<OneEventDispatcher<E>>()
             .unwrap()
-            .0
             .push(Box::new(f));
     }
 
@@ -67,8 +69,6 @@ impl EventDispatcher {
                 .1
                 .downcast_mut::<OneEventDispatcher<E>>()
                 .unwrap()
-                .0
-                .iter_mut()
             {
                 callback(event);
             }
@@ -101,13 +101,11 @@ mod test {
             assert_eq!(event.mouse_x, 10);
             assert_eq!(event.mouse_y, 5);
         });
-        node.trigger(&OnClick {
+        let e = OnClick {
             mouse_x: 10,
             mouse_y: 5,
-        });
-        node.trigger_dyn(&OnClick {
-            mouse_x: 10,
-            mouse_y: 5,
-        });
+        };
+        node.trigger(&e);
+        node.trigger_dyn(&e);
     }
 }
