@@ -7,7 +7,6 @@ use std::any::{Any, TypeId};
 use std::collections::HashMap;
 
 pub trait Event: AsAny {}
-impl Downcast for dyn Event {}
 
 type OneOneED<E> = Box<dyn FnMut(&E) + 'static>;
 type OneEventDispatcher<E> = Vec<OneOneED<E>>;
@@ -60,7 +59,7 @@ impl EventDispatcher {
 
     pub fn trigger<E: Event>(&mut self, event: &E) {
         if let Some(listeners) = self.0.get_mut(&TypeId::of::<E>()) {
-            for callback in listeners.1.downcast_mut::<OneEventDispatcher<E>>().unwrap() {
+            for callback in (*listeners.1).downcast_mut::<OneEventDispatcher<E>>().unwrap() {
                 callback(event);
             }
         }

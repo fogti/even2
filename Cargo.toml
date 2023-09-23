@@ -1,11 +1,10 @@
 [package]
 name = "even2"
 description = "A simple event dispatcher"
-version = "0.0.0"
-authors = ["Erik Zscheile <zseri.devel@ytrizja.de>"]
+version = "0.0.1"
 edition = "2018"
 license = "MIT OR Apache-2.0"
-repository = "https://github.com/reclutch-nursery/even2"
+repository = "https://github.com/fogti/even2"
 
 [dependencies]
-as-any = "0.2"
+as-any = "0.3"
